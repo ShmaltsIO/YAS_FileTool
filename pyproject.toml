@@ -1,0 +1,34 @@
+[project]
+name = "yas_filetool"
+version = "1.0.0"
+description = "Photo/video/audio toolkit"
+authors = [
+    {name = "Edgar Shmalts",email = "shmalts.edgar@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+]
+packages = [
+    { include = "yas_filetool", from = "src" },
+    { include = "yas_filetool/assets/*", from = "src", format = ["sdist", "wheel"] },
+]
+
+
+[tool.poetry.dependencies]
+PyQt6 = "^6.6"
+Pillow = "^10.0"
+imagehash = "^4.3"
+numpy = "^1.26"
+scipy = ">=1.10,<2.0"
+imageio-ffmpeg = "^0.5"
+tomli-w = "^1.0"
+
+
+[tool.poetry.scripts]
+yas-filetool = "yas_filetool.app:main"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

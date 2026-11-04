@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Poetry / venv
+.venv/
+venv/
+env/
+
+# Настройки пользователя — НЕ коммитим
+config/
+*.toml.bak
+
+# Отчёты, которые генерирует программа
+report_*.csv
+rejected_*.csv
+convert_report_*.csv
+rename_report_*.csv
+*_audit.csv
+*_rollback.csv
+
+# Сборка
+dist/
+build/
+*.spec
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
