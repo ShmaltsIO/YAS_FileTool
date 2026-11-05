@@ -1,6 +1,6 @@
 [project]
 name = "yas_filetool"
-version = "1.0.0"
+version = "1.1.0"
 description = "Photo/video/audio toolkit"
 authors = [
     {name = "Edgar Shmalts",email = "shmalts.edgar@gmail.com"}

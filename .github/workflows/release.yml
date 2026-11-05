@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:   # для ручного запуска
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: yas_filetool-linux-x86_64
+            binary: yas_filetool
+          - os: windows-latest
+            artifact: yas_filetool-windows-x86_64
+            binary: yas_filetool.exe
+          - os: macos-13          # x86_64 (Intel)
+            artifact: yas_filetool-macos-x86_64
+            binary: yas_filetool
+          - os: macos-14          # arm64 (Apple Silicon)
+            artifact: yas_filetool-macos-arm64
+            binary: yas_filetool
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # важно: нужен полный git log для version.py
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --no-interaction
+
+      - name: Install PyInstaller
+        run: poetry run pip install pyinstaller
+
+      - name: Build
+        run: poetry run python build.py
+        shell: bash
+
+      - name: Rename artifact (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mv bin/${{ matrix.binary }} bin/${{ matrix.artifact }} || true
+          chmod +x bin/${{ matrix.artifact }} || true
+
+      - name: Rename artifact (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Move-Item bin\${{ matrix.binary }} bin\${{ matrix.artifact }}.exe -Force -ErrorAction SilentlyContinue
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: bin/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/**/*
