@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import tomllib
+import sys
+import os
+
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -13,15 +16,47 @@ except ImportError:
     tomli_w = None
 
 
-def _project_root() -> Path:
-    p = Path(__file__).resolve()
-    for parent in p.parents:
-        if (parent / "pyproject.toml").exists():
-            return parent
-    return Path.cwd()
+def _portable_dir() -> Path | None:
+    """Папка рядом с бинарником, если в неё можно писать."""
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+    else:
+        exe_dir = Path(__file__).resolve().parents[2]  # корень проекта
+    try:
+        probe = exe_dir / ".write_test"
+        probe.write_text("")
+        probe.unlink()
+        return exe_dir
+    except OSError:
+        return None
 
 
-CONFIG_PATH = _project_root() / "config" / "settings.toml"
+def _system_dir() -> Path:
+    if sys.platform == "win32":
+        base = Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming"))
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    return base / "yas_filetool"
+
+
+def _config_dir() -> Path:
+    # 1. Явное переопределение (для тестов)
+    env = os.environ.get("YAS_FILETOOL_CONFIG")
+    if env:
+        return Path(env)
+
+    # 2. Portable: рядом с бинарником, если можно писать
+    portable = _portable_dir()
+    if portable is not None:
+        return portable / "config"
+
+    # 3. Системная папка
+    return _system_dir()
+
+
+CONFIG_PATH = _config_dir() / "settings.toml"
 
 
 @dataclass
