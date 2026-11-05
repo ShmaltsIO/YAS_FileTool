@@ -8,9 +8,10 @@ from pathlib import Path
 
 
 def _sounds_dir() -> Path:
+    base = Path(__file__).parent / "assets"
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        return Path(sys._MEIPASS) / "yas_filetool" / "assets" / "sounds"
-    return Path(__file__).parent / "assets" / "sounds"
+        base = Path(sys._MEIPASS) / "yas_filetool" / "assets"
+    return base / "sounds"
 
 
 def _play_file_windows(path: Path) -> bool:

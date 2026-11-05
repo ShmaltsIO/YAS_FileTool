@@ -1437,10 +1437,17 @@ class MainWindow(QMainWindow):
             self.fs_action.setChecked(self.isFullScreen())
 
 
+def _resource_dir(subfolder: str = "") -> Path:
+    base = Path(__file__).parent / "assets"
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        base = Path(sys._MEIPASS) / "yas_filetool" / "assets"
+    return base / subfolder if subfolder else base
+
+
 def app_icon() -> QIcon:
-    """Ищет icon.png в assets рядом с пакетом; fallback — стандартная."""
+    images = _resource_dir("images")
     for name in ("icon.png", "icon.svg"):
-        p = Path(__file__).parent / "assets/images" / name
+        p = images / name
         if p.exists():
             return QIcon(str(p))
     return QIcon()

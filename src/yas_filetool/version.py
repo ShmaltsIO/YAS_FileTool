@@ -88,5 +88,5 @@ def version_lines() -> list[str]:
     elif h:
         lines.append(f"Сборка: {n} коммитов, HEAD {h}")
     else:
-        lines.append("Сборка: релиз (git-инфо недоступно)")
+        lines.append("Сборка: релиз")
     return lines
