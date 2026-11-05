@@ -1,6 +1,6 @@
 [project]
 name = "yas_filetool"
-version = "1.1.1"
+version = "1.2.0"
 description = "Photo/video/audio toolkit"
 authors = [
     {name = "Edgar Shmalts",email = "shmalts.edgar@gmail.com"}
@@ -27,6 +27,10 @@ tomli-w = "^1.0"
 
 [tool.poetry.scripts]
 yas-filetool = "yas_filetool.app:main"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
 
 
 [build-system]
