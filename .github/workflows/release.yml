@@ -9,6 +9,7 @@ jobs:
   test:
     uses: ./.github/workflows/tests.yml
   build:
+    needs: test
     strategy:
       fail-fast: false
       matrix:
