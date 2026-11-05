@@ -1,4 +1,9 @@
 # YAS File Tool
+[![Tests](https://github.com/ShmaltsIO/YAS_FileTool/actions/workflows/tests.yml/badge.svg)](https://github.com/ShmaltsIO/YAS_FileTool/actions/workflows/tests.yml)
+[![Release](https://img.shields.io/github/v/release/ShmaltsIO/YAS_FileTool)](https://github.com/ShmaltsIO/YAS_FileTool/releases)
+[![License](https://img.shields.io/github/license/ShmaltsIO/YAS_FileTool)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 
 ![icon](src/yas_filetool/assets/images/icon_512.png)
 

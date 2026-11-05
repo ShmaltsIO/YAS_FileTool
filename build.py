@@ -1,4 +1,3 @@
-"""Собирает бинарник под текущую ОС в bin/."""
 from __future__ import annotations
 
 import argparse
@@ -20,10 +19,10 @@ ICON = (ROOT / "src/yas_filetool/assets/images"
 sep = ";" if IS_WIN else ":"
 assets_src = ROOT / "src" / "yas_filetool" / "assets"
 if not assets_src.exists():
-    raise SystemExit(f"FAIL: нет папки {assets_src}")
+    raise SystemExit(f"[FAIL] Error: no directory {assets_src}")
 add_data = f"{assets_src}{sep}yas_filetool/assets"
 
-# Безопасные исключения: только то, что точно не используется и не тянется Qt-плагинами
+
 EXCLUDES = [
     "PyQt6.QtWebEngineCore", "PyQt6.QtWebEngineWidgets", "PyQt6.QtWebEngineQuick",
     "PyQt6.QtWebChannel", "PyQt6.QtWebSockets",
@@ -44,8 +43,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["onefile", "onedir"],
                     default="onedir",
-                    help="onefile = один файл (медленный старт), "
-                         "onedir = папка (быстрый старт, по умолчанию)")
+                    help="onefile = one file (slow start), "
+                         "onedir = directory (fast start, DEFAULT)")
     args = ap.parse_args()
 
     if BIN.exists():
@@ -71,7 +70,7 @@ def main() -> None:
     ]
     for mod in EXCLUDES:
         cmd += ["--exclude-module", mod]
-    # --strip НЕ используем — ломает Qt на Linux
+
     if ICON.exists():
         cmd += ["--icon", str(ICON)]
 
@@ -83,17 +82,17 @@ def main() -> None:
     if args.mode == "onefile":
         out = BIN / (f"{NAME}.exe" if IS_WIN else NAME)
         if not out.exists():
-            raise SystemExit(f"FAIL: {out} не создан")
-        print(f"\n✓ Готово: {out}  ({out.stat().st_size / 1e6:.1f} MB)")
+            raise SystemExit(f"[FAIL] Error: {out} not created")
+        print(f"\n[OK] Done: {out}  ({out.stat().st_size / 1e6:.1f} MB)")
     else:
         out_dir = BIN / NAME
         if not out_dir.exists():
-            raise SystemExit(f"FAIL: {out_dir} не создан")
+            raise SystemExit(f"[FAIL] Error: {out_dir} not created")
         exe = out_dir / (f"{NAME}.exe" if IS_WIN else NAME)
         total = sum(f.stat().st_size for f in out_dir.rglob("*") if f.is_file())
-        print(f"\n✓ Готово: {out_dir}")
-        print(f"  Запуск:  {exe}")
-        print(f"  Размер:  {total / 1e6:.1f} MB")
+        print(f"\n[OK] Done: {out_dir}")
+        print(f"  Launch:  {exe}")
+        print(f"  Size:  {total / 1e6:.1f} MB")
 
 
 if __name__ == "__main__":

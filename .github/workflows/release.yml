@@ -6,6 +6,8 @@ on:
   workflow_dispatch:   # для ручного запуска
 
 jobs:
+  test:
+    uses: ./.github/workflows/tests.yml
   build:
     strategy:
       fail-fast: false
@@ -17,9 +19,6 @@ jobs:
           - os: windows-latest
             artifact: yas_filetool-windows-x86_64
             binary: yas_filetool.exe
-          - os: macos-13          # x86_64 (Intel)
-            artifact: yas_filetool-macos-x86_64
-            binary: yas_filetool
           - os: macos-14          # arm64 (Apple Silicon)
             artifact: yas_filetool-macos-arm64
             binary: yas_filetool
