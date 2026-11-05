@@ -27,6 +27,25 @@ from .gui.dialogs import (confirm_rollback_duplicates, confirm_rename,
                          show_rollback_done, show_audit_done)
 
 
+SUPPORT_URL = "https://boosty.to/"
+REPO_URL = "https://github.com/ShmaltsIO"
+BUG_REPORT_URL = "https://github.com/ShmaltsIO/YAS_FileTool/issues"
+
+
+def _play(kind: str) -> None:
+    """kind ∈ {'success', 'error'}."""
+    from . import config
+    s = config.settings().sound
+    if not s.enabled:
+        return
+    if kind == "success" and not s.on_success:
+        return
+    if kind == "error" and not s.on_error:
+        return
+    from .sounds import play_system
+    play_system(kind)
+
+
 # ===========================================================================
 # Вкладка 1: поиск дубликатов (старая логика)
 # ===========================================================================
@@ -227,6 +246,7 @@ class DuplicateFinderTab(QWidget):
         self.rollback_btn.setEnabled(True)
         self.progress.setValue(self.progress.maximum())
         show_duplicates_done(self, info)
+        _play("success")
 
     def _on_error(self, tb: str) -> None:
         self.start_btn.setEnabled(True)
@@ -234,6 +254,7 @@ class DuplicateFinderTab(QWidget):
         self.log.append("ОШИБКА:\n" + tb)
         QMessageBox.critical(self, "Ошибка",
                              "Произошла ошибка. Подробности в журнале.")
+        _play("error")
 
     def _start_rollback(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -255,6 +276,7 @@ class DuplicateFinderTab(QWidget):
         self.rollback_btn.setEnabled(True)
         self.start_btn.setEnabled(True)
         show_rollback_done(self, info)
+        _play("success")
 
     def _start_audit(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -273,6 +295,7 @@ class DuplicateFinderTab(QWidget):
     def _on_audit_done(self, info: dict) -> None:
         self.audit_btn.setEnabled(True)
         show_audit_done(self, info)
+        _play("success")
 
 
 # ===========================================================================
@@ -628,6 +651,7 @@ class RenameTab(QWidget):
         self.preview_btn.setEnabled(True)
         self._rebuild_tree()
         show_rename_done(self, info)
+        _play("success")
 
     def _on_rename_error(self, tb: str) -> None:
         self.rename_btn.setEnabled(True)
@@ -635,6 +659,7 @@ class RenameTab(QWidget):
         self.log.append("ОШИБКА:\n" + tb)
         QMessageBox.critical(self, "Ошибка",
                              "Подробности в журнале.")
+        _play("error")
 
 
 class ConverterTab(QWidget):
@@ -953,6 +978,7 @@ class ConverterTab(QWidget):
 
         self._scan_formats()   # обновим счётчики (могли поменяться)
         show_convert_done(self, info)
+        _play("success")
 
     def _on_error(self, tb: str) -> None:
         self.convert_btn.setEnabled(True)
@@ -964,6 +990,7 @@ class ConverterTab(QWidget):
 
         self.log.append("ОШИБКА:\n" + tb)
         QMessageBox.critical(self, "Ошибка", "Подробности в журнале.")
+        _play("error")
 
     def _do_rollback(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -987,6 +1014,7 @@ class ConverterTab(QWidget):
         self.rollback_btn.setEnabled(True)
         self.convert_btn.setEnabled(True)
         show_convert_rollback_done(self, info)
+        _play("success")
 
     def _on_file_progress(self, name: str, pct: float) -> None:
         self.current_label.setText(f"Конвертирую: {name}")
@@ -1062,6 +1090,53 @@ class SettingsTab(QWidget):
         gl3.addLayout(row)
         lay.addWidget(gb3)
 
+        # --- Звук ---
+        from .sounds import play_system
+        from . import config
+        snd = config.SoundSettings()
+
+        gb_sound = QGroupBox("Звук")
+        sl = QVBoxLayout(gb_sound)
+
+        self.cb_sound_enabled = QCheckBox("Включить звуковые уведомления")
+        self.cb_sound_enabled.setChecked(self._cfg.sound.enabled)
+        sl.addWidget(self.cb_sound_enabled)
+
+        self.cb_sound_success = QCheckBox("Звук при успешном завершении")
+        self.cb_sound_success.setChecked(self._cfg.sound.on_success)
+        sl.addWidget(self.cb_sound_success)
+
+        self.cb_sound_error = QCheckBox("Звук при ошибке")
+        self.cb_sound_error.setChecked(self._cfg.sound.on_error)
+        sl.addWidget(self.cb_sound_error)
+
+        row = QHBoxLayout()
+        for label, kind in [("Успех", "success"), ("Ошибка", "error")]:
+            b = QPushButton(f"Прослушать: {label}")
+            b.clicked.connect(lambda _=False, k=kind: play_system(k))
+            row.addWidget(b)
+        sl.addLayout(row)
+        lay.addWidget(gb_sound)
+
+        # --- Тема ---
+        gb_theme = QGroupBox("Тема оформления")
+        tl = QVBoxLayout(gb_theme)
+        self.theme_combo = QComboBox()
+        for label, val in [
+            ("Системная", "auto"),
+            ("Светлая", "light"),
+            ("Тёмная", "dark"),
+        ]:
+            self.theme_combo.addItem(label, val)
+        for i in range(self.theme_combo.count()):
+            if self.theme_combo.itemData(i) == self._cfg.ui.theme:
+                self.theme_combo.setCurrentIndex(i)
+                break
+        # предпросмотр без сохранения
+        self.theme_combo.currentIndexChanged.connect(self._preview_theme)
+        tl.addWidget(self.theme_combo)
+        lay.addWidget(gb_theme)
+
         # ---------- Кнопки ----------
         r = QHBoxLayout()
         self.save_btn = QPushButton("Сохранить в config/settings.toml")
@@ -1129,6 +1204,12 @@ class SettingsTab(QWidget):
             video_preset=self.sp_preset.currentText(),
             audio_bitrate=self.ed_audio.text(),
         )
+        s.sound = config.SoundSettings(
+            enabled=self.cb_sound_enabled.isChecked(),
+            on_success=self.cb_sound_success.isChecked(),
+            on_error=self.cb_sound_error.isChecked(),
+        )
+        s.ui = config.UISettings(theme=self.theme_combo.currentData())
         return s
 
     def _save(self) -> None:
@@ -1145,7 +1226,164 @@ class SettingsTab(QWidget):
         self.sp_phash.setValue(s.duplicate.phash_threshold)
         self.sp_ssim.setValue(s.duplicate.ssim_threshold)
         self.sp_p99.setValue(s.duplicate.p99_diff_threshold)
+
+        self.cb_sound_enabled.setChecked(s.sound.enabled)
+        self.cb_sound_success.setChecked(s.sound.on_success)
+        self.cb_sound_error.setChecked(s.sound.on_error)
+
+        for i in range(self.theme_combo.count()):
+            if self.theme_combo.itemData(i) == s.ui.theme:
+                self.theme_combo.setCurrentIndex(i)
+                break
+
         self.status.setText("Сброшено (не сохранено — нажмите Сохранить)")
+
+    def _preview_theme(self) -> None:
+        from PyQt6.QtWidgets import QApplication
+        from .gui.themes import apply_theme
+        mode = self.theme_combo.currentData()
+        apply_theme(QApplication.instance(), mode)
+
+
+class HelpTab(QWidget):
+    def __init__(self) -> None:
+        super().__init__()
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        from . import version as ver
+        from . import config
+
+        outer = QVBoxLayout(self)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        w = QWidget()
+        lay = QVBoxLayout(w)
+
+        # --- Заголовок ---
+        title = QLabel("YAS File Tool")
+        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        lay.addWidget(title)
+        sub = QLabel(
+            "Поиск дубликатов, переименование, конвертация медиа.")
+        sub.setStyleSheet("color: gray;")
+        lay.addWidget(sub)
+
+        # --- Версия + зависимости ---
+        vb = QGroupBox("Версия")
+        vl = QVBoxLayout(vb)
+        for line in ver.version_lines():
+            lbl = QLabel(line)
+            lbl.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse)
+            vl.addWidget(lbl)
+        vl.addWidget(QLabel(self._deps_info()))
+        lay.addWidget(vb)
+
+        # --- Быстрый старт ---
+        qs = QGroupBox("Быстрый старт")
+        ql = QVBoxLayout(qs)
+        ql.addWidget(QLabel(
+            "<b>Поиск дубликатов.</b> Добавьте папки → укажите папку "
+            "назначения → «Начать поиск». Отчёт сохраняется туда же.<br><br>"
+            "<b>Переименование.</b> Добавьте папки → снимите галочки с "
+            "ненужных → настройте шаблон → «Предпросмотр» → "
+            "«Переименовать».<br><br>"
+            "<b>Конвертер.</b> Добавьте папки → выберите целевой формат "
+            "для каждого расширения (или «Привести к единому формату») → "
+            "«Конвертировать». Для видео/аудио нужен ffmpeg — он уже "
+            "встроен."))
+        lay.addWidget(qs)
+
+        # --- Пути и логи ---
+        pb = QGroupBox("Файлы и пути")
+        pl = QVBoxLayout(pb)
+        for label, path in [
+            ("Настройки:", str(config.CONFIG_PATH)),
+        ]:
+            pl.addWidget(QLabel(f"<b>{label}</b> {path}"))
+        lay.addWidget(pb)
+
+        # --- Горячие клавиши ---
+        hb = QGroupBox("Горячие клавиши")
+        hl = QVBoxLayout(hb)
+        hl.addWidget(QLabel(
+            "F11 — полный экран\n"
+            "Esc — выйти из полного экрана\n"
+            "Ctrl+Shift+M — развернуть/восстановить окно"))
+        lay.addWidget(hb)
+
+        # --- Ссылки ---
+        lb = QGroupBox("Ссылки")
+        ll = QHBoxLayout(lb)
+
+        def _open(url: str):
+            from PyQt6.QtGui import QDesktopServices
+            from PyQt6.QtCore import QUrl
+            QDesktopServices.openUrl(QUrl(url))
+
+        b1 = QPushButton("GitHub")
+        b1.clicked.connect(lambda: _open(REPO_URL))
+        ll.addWidget(b1)
+
+        b2 = QPushButton("Сообщить об ошибке")
+        b2.clicked.connect(lambda: _open(BUG_REPORT_URL))
+        ll.addWidget(b2)
+
+        # b3 = QPushButton("♥ Поддержать проект")
+        # b3.setStyleSheet("background: #e05a5a; color: white; "
+        #                  "padding: 6px 12px; font-weight: bold;")
+        # b3.clicked.connect(lambda: _open(SUPPORT_URL))
+        # ll.addWidget(b3)
+        lay.addWidget(lb)
+
+        # --- Лицензия ---
+        lic = QGroupBox("Лицензия")
+        lil = QVBoxLayout(lic)
+        lil.addWidget(QLabel(
+            "MIT License — свободное использование, модификация и "
+            "распространение. Предоставляется «как есть», без гарантий. "
+            "Автор не несёт ответственности за потерю данных."))
+        lay.addWidget(lic)
+
+        lay.addStretch()
+        scroll.setWidget(w)
+        outer.addWidget(scroll)
+
+    def _deps_info(self) -> str:
+        parts: list[str] = []
+        try:
+            from PyQt6.QtCore import QT_VERSION_STR, PYQT_VERSION_STR
+            parts.append(f"Qt {QT_VERSION_STR} / PyQt {PYQT_VERSION_STR}")
+        except Exception:
+            pass
+        try:
+            import PIL
+            parts.append(f"Pillow {PIL.__version__}")
+        except Exception:
+            pass
+        try:
+            from .converter import get_ffmpeg
+            ff = get_ffmpeg()
+            parts.append(f"ffmpeg: {'✓' if ff else '✗ не найден'}")
+        except Exception:
+            pass
+        return "  •  ".join(parts)
+
+    def _copy_diagnostics(self) -> None:
+        import platform, sys
+        from . import version as ver
+        from . import config
+        lines = [
+            *ver.version_lines(),
+            f"OS: {platform.platform()}",
+            f"Python: {sys.version.split()[0]}",
+            self._deps_info(),
+            f"Config: {config.CONFIG_PATH}",
+        ]
+        QApplication.clipboard().setText("\n".join(lines))
+        QMessageBox.information(self, "Скопировано",
+                                "Информация о системе в буфере обмена.")
 
 
 # ===========================================================================
@@ -1164,6 +1402,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(RenameTab(), "Переименовать файлы")
         tabs.addTab(ConverterTab(), "Конвертер")
         tabs.addTab(SettingsTab(), "Настройки")
+        tabs.addTab(HelpTab(), "Справка")
         self.setCentralWidget(tabs)
 
         # --- Меню «Вид» ---
@@ -1201,18 +1440,25 @@ class MainWindow(QMainWindow):
 def app_icon() -> QIcon:
     """Ищет icon.png в assets рядом с пакетом; fallback — стандартная."""
     for name in ("icon.png", "icon.svg"):
-        p = Path(__file__).parent / "assets" / name
+        p = Path(__file__).parent / "assets/images" / name
         if p.exists():
             return QIcon(str(p))
     return QIcon()
 
 
 def main() -> None:
-    from . import config
-    config._apply_to_modules(config.settings())
     app = QApplication(sys.argv)
+
     app.setApplicationName("YAS File Tool")
     app.setWindowIcon(app_icon())
+
+    from . import config
+    config._apply_to_modules(config.settings())
+
+    from .gui.themes import apply_theme
+    apply_theme(app, config.settings().ui.theme)
+
+
     w = MainWindow()
     w.setWindowIcon(app_icon())
     w.showMaximized()

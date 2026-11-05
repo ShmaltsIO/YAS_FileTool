@@ -5,6 +5,8 @@ import tomllib
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+
+
 try:
     import tomli_w
 except ImportError:
@@ -56,10 +58,24 @@ class ConverterSettings:
 
 
 @dataclass
+class SoundSettings:
+    enabled: bool = True
+    on_success: bool = True
+    on_error: bool = True
+
+
+@dataclass
+class UISettings:
+    theme: str = "auto"   # "auto" | "light" | "dark"
+
+
+@dataclass
 class AppSettings:
     duplicate: DuplicateSettings = field(default_factory=DuplicateSettings)
     rename: RenameSettings = field(default_factory=RenameSettings)
     converter: ConverterSettings = field(default_factory=ConverterSettings)
+    sound: SoundSettings = field(default_factory=SoundSettings)
+    ui: UISettings = field(default_factory=UISettings)
 
 
 _settings: AppSettings | None = None
@@ -83,7 +99,7 @@ def load(path: Path | None = None) -> AppSettings:
         return AppSettings()
 
     s = AppSettings()
-    for section_name in ("duplicate", "rename", "converter"):
+    for section_name in ("duplicate", "rename", "converter", "sound", "ui"):
         section = getattr(s, section_name)
         for key, value in (data.get(section_name) or {}).items():
             if hasattr(section, key):
