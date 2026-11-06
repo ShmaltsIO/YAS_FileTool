@@ -20,7 +20,7 @@ jobs:
           - os: windows-latest
             artifact: yas_filetool-windows-x86_64
             binary: yas_filetool.exe
-          - os: macos-14          # arm64 (Apple Silicon)
+          - os: macos-latest          # arm64 (Apple Silicon)
             artifact: yas_filetool-macos-arm64
             binary: yas_filetool
 
