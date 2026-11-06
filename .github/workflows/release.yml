@@ -50,22 +50,28 @@ jobs:
         run: poetry run python build.py
         shell: bash
 
-      - name: Rename artifact (Linux/macOS)
+      - name: Package artifact (Linux/macOS)
         if: runner.os != 'Windows'
+        shell: bash
         run: |
-          mv bin/${{ matrix.binary }} bin/${{ matrix.artifact }} || true
-          chmod +x bin/${{ matrix.artifact }} || true
+          cd bin
+          zip -r "../${{ matrix.artifact }}.zip" yas_filetool/
+          cd ..
+          ls -la "${{ matrix.artifact }}.zip"
 
-      - name: Rename artifact (Windows)
+      - name: Package artifact (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          Move-Item bin\${{ matrix.binary }} bin\${{ matrix.artifact }}.exe -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path bin\yas_filetool -DestinationPath "${{ matrix.artifact }}.zip"
+          Get-Item "${{ matrix.artifact }}.zip" | Format-List Name,Length
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: bin/
+          path: ${{ matrix.artifact }}.zip
+          if-no-files-found: error
 
   release:
     needs: build
@@ -80,6 +86,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
+
+      - name: Show artifacts
+        run: find artifacts -type f -printf '%p (%s bytes)\n'
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -88,5 +98,5 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: |
-            artifacts/**/*
+          files: artifacts/*.zip
+          fail_on_unmatched_files: true
